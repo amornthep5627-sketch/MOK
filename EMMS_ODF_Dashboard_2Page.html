@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMMS - ODF Environmental Monitoring</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,"Noto Sans Thai",sans-serif;background:#f4f7fb;color:#172033}
+button{font:inherit}
+.header{background:#fff;border-bottom:1px solid #e5e9f0;padding:18px 28px;display:flex;justify-content:space-between;align-items:center}
+.brand{font-size:22px;font-weight:700}.sub{font-size:13px;color:#7a8495;margin-top:4px}
+.container{max-width:1250px;margin:auto;padding:28px}
+.view{display:none}.view.active{display:block}
+.page-title{font-size:25px;font-weight:700;margin-bottom:6px}
+.page-sub{color:#778195;margin-bottom:24px}
+.cabinet-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:22px;max-width:800px}
+.cabinet{background:#fff;border:1px solid #e4e9f0;border-radius:16px;padding:25px;box-shadow:0 5px 18px rgba(30,45,70,.06)}
+.cabinet-top{display:flex;justify-content:space-between;align-items:center}
+.cabinet-id{font-size:28px;font-weight:700}
+.online{display:flex;align-items:center;gap:7px;font-size:13px;color:#16803c}.dot{width:9px;height:9px;border-radius:50%;background:#22c55e}
+.cabinet-info{color:#778195;margin:15px 0 22px;font-size:14px}
+.select-btn,.back-btn{border:0;border-radius:9px;padding:11px 18px;cursor:pointer;font-weight:700}
+.select-btn{background:#172033;color:#fff;width:100%}.select-btn:hover{opacity:.9}
+.back-btn{background:#eef2f7;color:#344054;margin-bottom:20px}
+.topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px}
+.selected-id{font-size:28px;font-weight:700}.selected-sub{font-size:13px;color:#7b8596;margin-top:4px}
+.status-online{display:flex;align-items:center;gap:8px;color:#16803c;font-weight:700}
+.grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px}
+.card{background:#fff;border:1px solid #e6eaf0;border-radius:14px;padding:20px;box-shadow:0 4px 14px rgba(30,45,70,.05)}
+.label{font-size:14px;color:#727d8e}.value{font-size:31px;font-weight:700;margin:10px 0 4px}.unit{font-size:15px;color:#7a8495}
+.status{font-size:13px;font-weight:600}.normal{color:#16a34a}.warning{color:#d97706}.alarm{color:#dc2626}
+.section{margin-top:20px}.section-title{font-size:18px;font-weight:700;margin-bottom:12px}
+.two{display:grid;grid-template-columns:2fr 1fr;gap:18px}
+.chart{height:330px;padding:15px}.chart canvas{width:100%;height:100%}
+.device{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:1px solid #edf0f4}
+.device:last-child{border-bottom:0}
+.pill{padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#eef2f7;color:#64748b}
+.pill.on{background:#dcfce7;color:#15803d}.pill.warn{background:#fef3c7;color:#b45309}
+.footer{text-align:center;color:#8791a1;font-size:12px;padding:25px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}.two{grid-template-columns:1fr}.cabinet-grid{grid-template-columns:1fr}}
+@media(max-width:560px){.header{padding:15px}.container{padding:15px}.grid{grid-template-columns:1fr}.selected-id{font-size:23px}.value{font-size:28px}}
+.login-page{
+    position:fixed;
+    inset:0;
+    background:#f4f7fb;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    z-index:9999;
+}
+
+.login-box{
+    width:360px;
+    background:white;
+    padding:35px;
+    border-radius:16px;
+    box-shadow:0 10px 30px rgba(0,0,0,0.12);
+    text-align:center;
+}
+
+.login-box h2{
+    margin-bottom:8px;
+}
+
+.login-box p{
+    color:#7a8495;
+    margin-bottom:25px;
+}
+
+.login-box input{
+    width:100%;
+    padding:12px;
+    margin-bottom:12px;
+    border:1px solid #ddd;
+    border-radius:8px;
+    font-size:15px;
+}
+
+.login-box button{
+    width:100%;
+    padding:12px;
+    border:none;
+    border-radius:8px;
+    background:#172033;
+    color:white;
+    font-size:15px;
+    cursor:pointer;
+}
+
+#loginError{
+    color:#dc2626;
+    margin-top:12px;
+}
+</style> 
+
+</head>
+<script>
+function login(){
+
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+
+    if(username === "ODF" && password === "1234"){
+
+        document.getElementById("loginPage").style.display = "none";
+
+    }else{
+
+        document.getElementById("loginError").textContent =
+        "Username หรือ Password ไม่ถูกต้อง";
+
+    }
+}
+</script>
+<body> <div id="loginPage" class="login-page">
+    <div class="login-box">
+        <h2>SMART FIBER</h2>
+        <p>ODF Environmental Monitoring System</p>
+
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+
+        <button onclick="login()">เข้าสู่ระบบ</button>
+
+        <div id="loginError"></div>
+    </div>
+</div>
+
+<header class="header">
+  <div>
+    <div class="brand">EMMS</div>
+    <div class="sub">ODF Environmental Monitoring & Management System</div>
+  </div>
+  <div class="online"><span class="dot"></span> SYSTEM ONLINE</div>
+</header>
+
+<main class="container">
+
+  <!-- PAGE 1 : SELECT CABINET -->
+  <section id="selectView" class="view active">
+    <div class="page-title">เลือกตู้ ODF</div>
+    <div class="page-sub">เลือกหมายเลขตู้ที่ต้องการตรวจสอบสถานะ</div>
+
+    <div class="cabinet-grid">
+      <div class="cabinet">
+        <div class="cabinet-top">
+          <div class="cabinet-id">EMMS-001</div>
+          <div class="online"><span class="dot"></span> ONLINE</div>
+        </div>
+        <div class="cabinet-info">Optical Distribution Frame Cabinet<br>Monitoring Node 001</div>
+        <button class="select-btn" onclick="openCabinet('EMMS-001')">ตรวจสอบตู้</button>
+      </div>
+
+      <div class="cabinet">
+        <div class="cabinet-top">
+          <div class="cabinet-id">EMMS-002</div>
+          <div class="online"><span class="dot"></span> ONLINE</div>
+        </div>
+        <div class="cabinet-info">Optical Distribution Frame Cabinet<br>Monitoring Node 002</div>
+        <button class="select-btn" onclick="openCabinet('EMMS-002')">ตรวจสอบตู้</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- PAGE 2 : MONITORING -->
+  <section id="monitorView" class="view">
+    <button class="back-btn" onclick="backToSelect()">← กลับไปเลือกตู้</button>
+
+    <div class="topbar">
+      <div>
+        <div class="selected-id" id="cabinetTitle">EMMS-001</div>
+        <div class="selected-sub">Optical Distribution Frame Environmental Monitoring</div>
+      </div>
+      <div class="status-online"><span class="dot"></span> ESP32 ONLINE</div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="label">อุณหภูมิภายในตู้</div>
+        <div class="value" id="temp">32.5</div><span class="unit">°C</span>
+        <div class="status normal" id="tempStatus">ปกติ</div>
+      </div>
+
+      <div class="card">
+        <div class="label">ความชื้นสัมพัทธ์</div>
+        <div class="value" id="hum">68.0</div><span class="unit">%RH</span>
+        <div class="status normal" id="humStatus">ปกติ</div>
+      </div>
+
+      <div class="card">
+        <div class="label">พัดลมระบายอากาศ</div>
+        <div class="value" id="fan">OFF</div>
+        <div class="status normal" id="fanStatus">ไม่ได้ทำงาน</div>
+      </div>
+
+      <div class="card">
+        <div class="label">ระบบลดความชื้น</div>
+        <div class="value" id="dehum">OFF</div>
+        <div class="status normal" id="dehumStatus">ไม่ได้ทำงาน</div>
+      </div>
+    </div>
+
+    <div class="section two">
+      <div class="card chart">
+        <div class="section-title">ข้อมูลอุณหภูมิและความชื้นแบบ Real-time</div>
+        <canvas id="chart"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="section-title">สถานะอุปกรณ์</div>
+        <div class="device"><span>ESP32 Controller</span><span class="pill on">ONLINE</span></div>
+        <div class="device"><span>SHT30 Sensor</span><span class="pill on">NORMAL</span></div>
+        <div class="device"><span>Fiber Light</span><span class="pill on" id="fiber">NORMAL</span></div>
+        <div class="device"><span>Ventilation Fan</span><span class="pill" id="fanPill">OFF</span></div>
+        <div class="device"><span>Dehumidification</span><span class="pill" id="dehumPill">OFF</span></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="card">
+        <div class="section-title">เกณฑ์การควบคุมและตรวจสอบ</div>
+        <div class="device"><span>อุณหภูมิสูงสุด</span><b>45 °C</b></div>
+        <div class="device"><span>ความชื้นสัมพัทธ์สูงสุด</span><b>85 %RH</b></div>
+        <div class="device"><span>Fiber Optical Signal</span><b>ตรวจสอบสถานะ</b></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<div class="footer">EMMS Prototype • Optical Distribution Frame Environmental Monitoring & Management System</div>
+
+<script>
+let currentCabinet="EMMS-001";
+let temp=32.5,hum=68,points=[];
+for(let i=0;i<40;i++)points.push({t:32+Math.random()*3,h:65+Math.random()*8});
+
+function openCabinet(id){
+  currentCabinet=id;
+  document.getElementById("cabinetTitle").textContent=id;
+  document.getElementById("selectView").classList.remove("active");
+  document.getElementById("monitorView").classList.add("active");
+  resetData(id);
+  setTimeout(draw,50);
+}
+
+function backToSelect(){
+  document.getElementById("monitorView").classList.remove("active");
+  document.getElementById("selectView").classList.add("active");
+}
+
+function resetData(id){
+  if(id==="EMMS-001"){temp=32.5;hum=68}
+  else {temp=34.1;hum=72}
+  points=[];
+  for(let i=0;i<40;i++)points.push({t:temp+(Math.random()-.5)*2,h:hum+(Math.random()-.5)*5});
+  updateUI();
+}
+
+function updateUI(){
+  document.getElementById("temp").textContent=temp.toFixed(1);
+  document.getElementById("hum").textContent=hum.toFixed(1);
+
+  const fan=temp>45;
+  const dehum=hum>85;
+
+  document.getElementById("fan").textContent=fan?"ON":"OFF";
+  document.getElementById("dehum").textContent=dehum?"ON":"OFF";
+
+  document.getElementById("fanStatus").textContent=fan?"กำลังทำงาน":"ไม่ได้ทำงาน";
+  document.getElementById("dehumStatus").textContent=dehum?"กำลังทำงาน":"ไม่ได้ทำงาน";
+
+  document.getElementById("tempStatus").textContent=fan?"เกินค่ากำหนด":"ปกติ";
+  document.getElementById("humStatus").textContent=dehum?"เกินค่ากำหนด":"ปกติ";
+
+  document.getElementById("tempStatus").className="status "+(fan?"warning":"normal");
+  document.getElementById("humStatus").className="status "+(dehum?"warning":"normal");
+
+  const fp=document.getElementById("fanPill"),dp=document.getElementById("dehumPill");
+  fp.textContent=fan?"ON":"OFF"; dp.textContent=dehum?"ON":"OFF";
+  fp.className="pill "+(fan?"warn":""); dp.className="pill "+(dehum?"warn":"");
+}
+
+function draw(){
+  const canvas=document.getElementById("chart"),ctx=canvas.getContext("2d");
+  const r=canvas.getBoundingClientRect(),d=devicePixelRatio||1;
+  if(!r.width)return;
+  canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);
+  const w=r.width,h=r.height,p=38;
+  ctx.clearRect(0,0,w,h);
+  ctx.strokeStyle="#e5e9f0";ctx.lineWidth=1;
+  for(let i=0;i<5;i++){let y=p+(h-2*p)*i/4;ctx.beginPath();ctx.moveTo(p,y);ctx.lineTo(w-p,y);ctx.stroke();}
+  function line(key,min,max){
+    ctx.beginPath();
+    points.forEach((v,i)=>{
+      let x=p+(w-2*p)*i/(points.length-1);
+      let y=h-p-(v[key]-min)/(max-min)*(h-2*p);
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.strokeStyle=key==="t"?"#2563eb":"#16a34a";ctx.lineWidth=2;ctx.stroke();
+  }
+  line("t",25,50);line("h",40,100);
+  ctx.fillStyle="#5f6b7a";ctx.font="12px Arial";
+  ctx.fillText("Temperature",p,18);ctx.fillText("Humidity",p+85,18);
+}
+
+function simulate(){
+  temp+=(Math.random()-.5)*0.7;
+  hum+=(Math.random()-.5)*1.2;
+  temp=Math.max(27,Math.min(48,temp));
+  hum=Math.max(55,Math.min(92,hum));
+  points.push({t:temp,h:hum});
+  if(points.length>40)points.shift();
+  updateUI();draw();
+}
+window.addEventListener("resize",draw);
+setInterval(simulate,2000);
+setTimeout(draw,100);
+</script>
+</body>
+</html>
