@@ -49,7 +49,6 @@ button{font:inherit}
     align-items:center;
     z-index:9999;
 }
-
 .login-box{
     width:360px;
     background:white;
@@ -58,16 +57,13 @@ button{font:inherit}
     box-shadow:0 10px 30px rgba(0,0,0,0.12);
     text-align:center;
 }
-
 .login-box h2{
     margin-bottom:8px;
 }
-
 .login-box p{
     color:#7a8495;
     margin-bottom:25px;
 }
-
 .login-box input{
     width:100%;
     padding:12px;
@@ -76,7 +72,6 @@ button{font:inherit}
     border-radius:8px;
     font-size:15px;
 }
-
 .login-box button{
     width:100%;
     padding:12px;
@@ -87,42 +82,20 @@ button{font:inherit}
     font-size:15px;
     cursor:pointer;
 }
-
 #loginError{
     color:#dc2626;
     margin-top:12px;
 }
 </style> 
-
 </head>
-<script>
-function login(){
-
-    const username = document.getElementById("username").value;
-    const password = document.getElementById("password").value;
-
-    if(username === "ODF" && password === "1234"){
-
-        document.getElementById("loginPage").style.display = "none";
-
-    }else{
-
-        document.getElementById("loginError").textContent =
-        "Username หรือ Password ไม่ถูกต้อง";
-
-    }
-}
-</script>
-<body> <div id="loginPage" class="login-page">
+<body> 
+<div id="loginPage" class="login-page">
     <div class="login-box">
         <h2>SMART FIBER</h2>
         <p>ODF Environmental Monitoring System</p>
-
         <input type="text" id="username" placeholder="Username">
         <input type="password" id="password" placeholder="Password">
-
         <button onclick="login()">เข้าสู่ระบบ</button>
-
         <div id="loginError"></div>
     </div>
 </div>
@@ -178,14 +151,14 @@ function login(){
     <div class="grid">
       <div class="card">
         <div class="label">อุณหภูมิภายในตู้</div>
-        <div class="value" id="temp">32.5</div><span class="unit">°C</span>
-        <div class="status normal" id="tempStatus">ปกติ</div>
+        <div class="value" id="temp">--</div><span class="unit">°C</span>
+        <div class="status normal" id="tempStatus">กำลังโหลดข้อมูล...</div>
       </div>
 
       <div class="card">
         <div class="label">ความชื้นสัมพัทธ์</div>
-        <div class="value" id="hum">68.0</div><span class="unit">%RH</span>
-        <div class="status normal" id="humStatus">ปกติ</div>
+        <div class="value" id="hum">--</div><span class="unit">%RH</span>
+        <div class="status normal" id="humStatus">กำลังโหลดข้อมูล...</div>
       </div>
 
       <div class="card">
@@ -231,92 +204,180 @@ function login(){
 
 <div class="footer">EMMS Prototype • Optical Distribution Frame Environmental Monitoring & Management System</div>
 
-<script>
-let currentCabinet="EMMS-001";
-let temp=32.5,hum=68,points=[];
-for(let i=0;i<40;i++)points.push({t:32+Math.random()*3,h:65+Math.random()*8});
+<!-- 1. นำเข้าไลบรารี Firebase SDK (เวอร์ชัน 8) -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
+<script>
+// ==============================================
+// ส่วนที่ 1: ระบบล็อกอิน
+// ==============================================
+function login(){
+    const username = document.getElementById("username").value;
+    const password = document.getElementById("password").value;
+    if(username === "ODF" && password === "1234"){
+        document.getElementById("loginPage").style.display = "none";
+    }else{
+        document.getElementById("loginError").textContent = "Username หรือ Password ไม่ถูกต้อง";
+    }
+}
+
+// ==============================================
+// ส่วนที่ 2: ตั้งค่าเชื่อมต่อ Firebase
+// ==============================================
+const firebaseConfig = {
+    apiKey: "AIzaSyBlweRIcFRxLlVyAvcXdyz5xcIcVEBYxH0",
+    databaseURL: "https://emms-odf-dashboard-default-rtdb.firebaseio.com",
+    projectId: "emms-odf-dashboard"
+};
+
+// เริ่มต้นใช้งาน Firebase (ถ้ายังไม่ได้ init)
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+const database = firebase.database();
+
+// ตัวแปรสำหรับเก็บ listener เดิม (เผื่อสลับตู้)
+let tempListener = null;
+let humListener = null;
+let currentCabinet = "EMMS-001";
+
+// ตัวแปรสำหรับเก็บข้อมูลวาดกราฟ
+let currentTemp = 0;
+let currentHum = 0;
+let points = [];
+for(let i=0; i<40; i++) points.push({t: 0, h: 0});
+
+// ==============================================
+// ส่วนที่ 3: ระบบจัดการหน้า UI และดึงข้อมูล Real-time
+// ==============================================
 function openCabinet(id){
-  currentCabinet=id;
-  document.getElementById("cabinetTitle").textContent=id;
+  currentCabinet = id;
+  document.getElementById("cabinetTitle").textContent = id;
   document.getElementById("selectView").classList.remove("active");
   document.getElementById("monitorView").classList.add("active");
-  resetData(id);
-  setTimeout(draw,50);
+  
+  // ล้างกราฟชั่วคราว
+  points = [];
+  for(let i=0; i<40; i++) points.push({t: 0, h: 0});
+  
+  // เรียกฟังก์ชันเชื่อมต่อฐานข้อมูลตามรหัสตู้ (เช่น EMMS-001)
+  listenToFirebase(id);
+  setTimeout(draw, 50);
 }
 
 function backToSelect(){
   document.getElementById("monitorView").classList.remove("active");
   document.getElementById("selectView").classList.add("active");
+  
+  // ยกเลิกการดึงข้อมูลเมื่อกลับไปหน้าหลัก (ประหยัดแบนด์วิดท์)
+  if(tempListener) database.ref(currentCabinet + '/temperature').off('value', tempListener);
+  if(humListener) database.ref(currentCabinet + '/humidity').off('value', humListener);
 }
 
-function resetData(id){
-  if(id==="EMMS-001"){temp=32.5;hum=68}
-  else {temp=34.1;hum=72}
-  points=[];
-  for(let i=0;i<40;i++)points.push({t:temp+(Math.random()-.5)*2,h:hum+(Math.random()-.5)*5});
-  updateUI();
+// ฟังก์ชันหลัก: คอยดึงข้อมูลจาก Firebase ทันทีที่บอร์ด ESP32 อัปเดตค่า
+function listenToFirebase(cabinetId) {
+  const tempRef = database.ref(cabinetId + '/temperature');
+  const humRef = database.ref(cabinetId + '/humidity');
+
+  // ยกเลิกการเฝ้าดูตู้เดิมก่อนเริ่มดูตู้ใหม่
+  if(tempListener) database.ref(currentCabinet + '/temperature').off('value', tempListener);
+  if(humListener) database.ref(currentCabinet + '/humidity').off('value', humListener);
+
+  // จับตาดูอุณหภูมิ
+  tempListener = tempRef.on('value', (snapshot) => {
+    const val = snapshot.val();
+    if(val !== null) {
+      currentTemp = parseFloat(val);
+      document.getElementById("temp").textContent = currentTemp.toFixed(2);
+      updateStatusUI();
+      updateGraphData(currentTemp, currentHum);
+    }
+  });
+
+  // จับตาดูความชื้น
+  humListener = humRef.on('value', (snapshot) => {
+    const val = snapshot.val();
+    if(val !== null) {
+      currentHum = parseFloat(val);
+      document.getElementById("hum").textContent = currentHum.toFixed(2);
+      updateStatusUI();
+      updateGraphData(currentTemp, currentHum);
+    }
+  });
 }
 
-function updateUI(){
-  document.getElementById("temp").textContent=temp.toFixed(1);
-  document.getElementById("hum").textContent=hum.toFixed(1);
+// ฟังก์ชันอัปเดตสถานะ (แจ้งเตือนพัดลม/ตัวลดความชื้น)
+function updateStatusUI(){
+  const fan = currentTemp > 45;
+  const dehum = currentHum > 85;
 
-  const fan=temp>45;
-  const dehum=hum>85;
+  document.getElementById("fan").textContent = fan ? "ON" : "OFF";
+  document.getElementById("dehum").textContent = dehum ? "ON" : "OFF";
 
-  document.getElementById("fan").textContent=fan?"ON":"OFF";
-  document.getElementById("dehum").textContent=dehum?"ON":"OFF";
+  document.getElementById("fanStatus").textContent = fan ? "กำลังทำงาน" : "ไม่ได้ทำงาน";
+  document.getElementById("dehumStatus").textContent = dehum ? "กำลังทำงาน" : "ไม่ได้ทำงาน";
 
-  document.getElementById("fanStatus").textContent=fan?"กำลังทำงาน":"ไม่ได้ทำงาน";
-  document.getElementById("dehumStatus").textContent=dehum?"กำลังทำงาน":"ไม่ได้ทำงาน";
+  document.getElementById("tempStatus").textContent = fan ? "เกินค่ากำหนด" : "ปกติ";
+  document.getElementById("humStatus").textContent = dehum ? "เกินค่ากำหนด" : "ปกติ";
 
-  document.getElementById("tempStatus").textContent=fan?"เกินค่ากำหนด":"ปกติ";
-  document.getElementById("humStatus").textContent=dehum?"เกินค่ากำหนด":"ปกติ";
+  document.getElementById("tempStatus").className = "status " + (fan ? "warning" : "normal");
+  document.getElementById("humStatus").className = "status " + (dehum ? "warning" : "normal");
 
-  document.getElementById("tempStatus").className="status "+(fan?"warning":"normal");
-  document.getElementById("humStatus").className="status "+(dehum?"warning":"normal");
+  const fp = document.getElementById("fanPill"), dp = document.getElementById("dehumPill");
+  fp.textContent = fan ? "ON" : "OFF"; 
+  dp.textContent = dehum ? "ON" : "OFF";
+  fp.className = "pill " + (fan ? "warn" : ""); 
+  dp.className = "pill " + (dehum ? "warn" : "");
+}
 
-  const fp=document.getElementById("fanPill"),dp=document.getElementById("dehumPill");
-  fp.textContent=fan?"ON":"OFF"; dp.textContent=dehum?"ON":"OFF";
-  fp.className="pill "+(fan?"warn":""); dp.className="pill "+(dehum?"warn":"");
+// ==============================================
+// ส่วนที่ 4: ระบบวาดกราฟ
+// ==============================================
+function updateGraphData(t, h) {
+  // กรองค่าที่เป็น 0 ออก (ตอนเปิดกราฟครั้งแรก)
+  if(t === 0 && h === 0) return;
+  
+  points.push({t: t, h: h});
+  if(points.length > 40) points.shift();
+  draw();
 }
 
 function draw(){
-  const canvas=document.getElementById("chart"),ctx=canvas.getContext("2d");
-  const r=canvas.getBoundingClientRect(),d=devicePixelRatio||1;
-  if(!r.width)return;
-  canvas.width=r.width*d;canvas.height=r.height*d;ctx.setTransform(d,0,0,d,0,0);
-  const w=r.width,h=r.height,p=38;
+  const canvas = document.getElementById("chart"), ctx = canvas.getContext("2d");
+  const r = canvas.getBoundingClientRect(), d = devicePixelRatio || 1;
+  if(!r.width) return;
+  canvas.width = r.width * d; canvas.height = r.height * d; ctx.setTransform(d,0,0,d,0,0);
+  const w = r.width, h = r.height, p = 38;
   ctx.clearRect(0,0,w,h);
-  ctx.strokeStyle="#e5e9f0";ctx.lineWidth=1;
-  for(let i=0;i<5;i++){let y=p+(h-2*p)*i/4;ctx.beginPath();ctx.moveTo(p,y);ctx.lineTo(w-p,y);ctx.stroke();}
-  function line(key,min,max){
-    ctx.beginPath();
-    points.forEach((v,i)=>{
-      let x=p+(w-2*p)*i/(points.length-1);
-      let y=h-p-(v[key]-min)/(max-min)*(h-2*p);
-      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
-    });
-    ctx.strokeStyle=key==="t"?"#2563eb":"#16a34a";ctx.lineWidth=2;ctx.stroke();
+  ctx.strokeStyle = "#e5e9f0"; ctx.lineWidth = 1;
+  for(let i=0; i<5; i++){
+    let y = p + (h-2*p) * i/4; 
+    ctx.beginPath(); ctx.moveTo(p, y); ctx.lineTo(w-p, y); ctx.stroke();
   }
-  line("t",25,50);line("h",40,100);
-  ctx.fillStyle="#5f6b7a";ctx.font="12px Arial";
-  ctx.fillText("Temperature",p,18);ctx.fillText("Humidity",p+85,18);
+  function line(key, min, max){
+    ctx.beginPath();
+    let hasData = false;
+    points.forEach((v, i) => {
+      if(v[key] === 0) return; // ข้ามจุดที่เป็น 0 (ไม่มีข้อมูล)
+      hasData = true;
+      let x = p + (w-2*p) * i / (points.length-1);
+      let y = h - p - (v[key]-min) / (max-min) * (h-2*p);
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    });
+    if(hasData) {
+      ctx.strokeStyle = key === "t" ? "#2563eb" : "#16a34a"; 
+      ctx.lineWidth = 2; 
+      ctx.stroke();
+    }
+  }
+  line("t", 20, 55); 
+  line("h", 40, 100);
+  ctx.fillStyle = "#5f6b7a"; ctx.font = "12px Arial";
+  ctx.fillText("Temperature", p, 18); ctx.fillText("Humidity", p+85, 18);
 }
 
-function simulate(){
-  temp+=(Math.random()-.5)*0.7;
-  hum+=(Math.random()-.5)*1.2;
-  temp=Math.max(27,Math.min(48,temp));
-  hum=Math.max(55,Math.min(92,hum));
-  points.push({t:temp,h:hum});
-  if(points.length>40)points.shift();
-  updateUI();draw();
-}
-window.addEventListener("resize",draw);
-setInterval(simulate,2000);
-setTimeout(draw,100);
+window.addEventListener("resize", draw);
 </script>
 </body>
 </html>
